@@ -1,0 +1,26 @@
+.win {
+color: #4CAF50;
+animation: pulse 1.5s infinite;
+}
+.draw{
+ color: #764ba2;
+}
+.statusX{
+ color: #667eea;
+}
+.statusO{ 
+color: #e0992d;
+}
+.info{
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 15px 30px;
+  border-radius: 15px;
+  background: #764ba220;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  
+}

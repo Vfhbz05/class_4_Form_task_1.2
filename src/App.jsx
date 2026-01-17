@@ -1,83 +1,103 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useRef} from 'react';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import styles from './App.module.css';
 
-import { Field } from './components/Field';
-import { Information } from './components/Information';
-import { AppLayout } from './components/AppLayout';
- 
-function App() {
- const [currentPlayer, setCurrentPlayer] = useState('X');
- const [isGameEnded, setIsGameEnded] = useState(false);
- const [isDraw, setIsDraw] = useState(false);
- const[field, setField] = useState([
-	'', '', '',
-	'', '', '',
-	'', '', ''
- ]);
-	const WIN_PATTERNS = [
-		[0, 1, 2], [3, 4, 5], [6, 7, 8], // Варианты побед по горизонтали
-		[0, 3, 6], [1, 4, 7], [2, 5, 8], // Варианты побед по вертикали
-		[0, 4, 8], [2, 4, 6] // Варианты побед по диагонали
-		];
+const fieldsScheme = yup.object()
+.shape({email:yup.string()
+	.matches(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Должен быть символ "@", разрешено использование латиницы, цифр, точки, дефиса и нижнего подчеркивания')
+	 .required('Email обязателен'),
 
-		const getWinner = (field) => {
-			for (const combination of WIN_PATTERNS){
-				const [a, b, c] = combination;
-				if (field[a] && field[a] === field[b] && field[a] === field[c]){
-					return field[a];
-				};
-			};
-			return null
-		};
-		
-		const getDraw = (field) => {
-			
-			const isCellFull = field.every((cell)=>{return cell !== ''});
-			
-			const winner = getWinner(field);
-			const hasWinner = winner !== null;
-			return isCellFull && !hasWinner;
-		}
+	password1: yup.string()
+	.required('Пароль обязателен')
+	.matches( /(?=.*[a-z])(?=.*[A-Z])/, 'Пароль должен содержать хотя бы одну заглавную и одну строчную букву, используются только латинские буквы')
+	.min(6, 'Пароль должен содержать минимум 6 символов'),
 
-		const onClickToCell = (index) => {
-			if(field[index] !== '' || isGameEnded){
-				return;
-			}
+	password2 : yup.string()
+	.required('Подтвердите пароль')
+	.oneOf([yup.ref('password1')], 'Пароли не совпадают')
+});
 
-			const newField = [...field];
-			newField[index] = currentPlayer;
+function App () {
 
-			const winner = getWinner(newField);
-			const isDrawResult = getDraw(newField);
+	const {
+		register,
+		handleSubmit,
+		formState: { errors },
+		reset,
+		watch
+	} = useForm ({
+		defaultValues: {email: '',
+			password1: '',
+			password2: '',
+		},
+		resolver: yupResolver(fieldsScheme),
+		mode: 'onChange'
+	});
 
-			setField(newField);
-			if(winner) {
-				setIsGameEnded(true);
-			} else if (isDrawResult){
-				setIsDraw(true);
-				setIsGameEnded(true);
-			} else {
-				setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X')
-			};
-		} ;
+	const emailError = errors.email?.message;
+	const password1Error = errors.password1?.message;
+	const password2Error = errors.password2?.message;
 
-		const onClickRestart = () => {
-			setCurrentPlayer('X');
-			setField([
-					'', '', '',
-					'', '', '',
-					'', '', '',
-				]);
-			setIsDraw(false);
-			setIsGameEnded(false);
-		}
- return(
-  <div>
-	<AppLayout information = {
-		<Information currentPlayer={currentPlayer} isGameEnded={isGameEnded} isDraw={isDraw}/>
-		}
-		field = {<Field field = {field} onClickToCell = {onClickToCell}/>
-		}
-		onClickRestart = {onClickRestart}/>
+	const submitButtonRef = useRef(null);
+
+	const values = watch();
+	
+	const checkAndFocus = () => {
+    const hasErrors = Object.keys(errors).length === 0;
+    const allFieldsFilled = values.email && values.password1 && values.password2;
+    
+      if (hasErrors && allFieldsFilled && submitButtonRef.current) {
+      setTimeout(() => {
+        submitButtonRef.current.focus();
+      }, 10);
+    }
+  };
+    
+  const handleInputChange = () => {
+    checkAndFocus(); 
+};
+	
+
+  const onSubmit = (formData) => {
+		console.log(formData);
+		reset();
+	};
+
+return(<div className = {styles.app}>
+	<h1 className = {styles.title}>Регистрация</h1>
+	<form className = {styles.registrationForm} onSubmit = {handleSubmit(onSubmit)} onChange = {handleInputChange}>
+		<label className = {styles.formLabel}>Email</label>
+		<input 
+		className={errors.email ? styles.error : ''}
+		type = "email"
+		name = "email"
+		placeholder = "Почта"
+		{... register('email')}
+		/>
+		{errors.email && (<div className = {styles.errorMessage}>{errors.email?.message}</div>)}
+		<label className = {styles.formLabel}>Пароль</label>
+		<input 
+		className={errors.password1 ? styles.error : ''}
+		type = "password"
+		name = "password1"
+		placeholder = "Пароль"
+		{... register('password1')}
+		/>
+		{errors.password1 && (<div className = {styles.errorMessage}>{errors.password1?.message}</div>)}
+
+		<label className = {styles.formLabel}>Повторите пароль</label>
+		<input 
+		className={errors.password2 ? styles.error : ''}
+		type = "password"
+		name = "password2"
+		placeholder = "Повторный пароль"
+		{... register('password2')}
+		/>
+		{errors.password2 && (<div className = {styles.errorMessage}>{errors.password2?.message}</div>)}
+		<button className={`${styles.sbmBtn} ${!!emailError || !!password1Error || !!password2Error ? styles.disabled : ''}`} ref = {submitButtonRef} type = "submit" disabled = {!!emailError || !!password1Error || !!password2Error}>Зарегистрироваться</button>
+	</form>
   </div>
  );
 };
